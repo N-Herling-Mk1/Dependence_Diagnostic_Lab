@@ -13,6 +13,50 @@ independence decision rests on dCor (zero **iff** independent, for any
 distribution), with closure as the final physics arbiter. See
 `docs/` for the rationale and the full pipeline writeup.
 
+## One-page spine
+
+```
++==========================================================================+
+|              DEPENDENCE_DIAGNOSTIC_LAB :: ONE-PAGE SPINE                  |
++==========================================================================+
+
+  THESIS ...... Pearson can only FAIL to find dependence.
+                dCor can CERTIFY its ABSENCE.
+                ABCD's null IS independence -> need the certifier.
+
+  THE METRICS
+    Pearson rho     linear only | signed | rho=0 => indep ONLY if Gaussian
+    dCor [0,1]      any shape    | unsign | dCor=0 <=> independent (always)
+    --------------------------------------------------------------------
+       rho != 0  ==> dCor > 0        (everything Pearson sees, dCor sees)
+       dCor = 0  ==> rho  = 0        (the converse Pearson CANNOT give)
+
+  WHY NN SCORES BREAK PEARSON  (= ways of being non-Gaussian)
+    [1] shared-latent nonlinearity   [4] heteroscedastic (variance) dep.
+    [2] output squashing -> corners   [5] barrel quantization @ cut lattice
+    [3] tail co-movement (the signal corner)
+
+  THE LINKING THEOREM  (data-processing inequality)
+        I(s1;s2)  <=  I(X1;X2)
+        inputs = CEILING      outputs = REALIZED      gap = the physics
+
+  TWO OBJECTS + BRIDGE
+    A  inputs   within-set: dCor matrix, participation ratio, total corr
+                cross-set : Jaccard, CCA, vector-dCor, HSIC   (the ceiling)
+    B  outputs  dCor + perm, MI, sliced dCor, E/Var profiles, ABCD closure
+    -> bridge   partial dCor(s1,s2 ; shared):
+                  ~0  => INHERITED   (fix the inputs)
+                  >0  => MANUFACTURED (fix the outputs / MaxEnt tilt)
+
+  INFO-THEORY LAYER  (= MaxEnt / HELIX spine)
+        I(X;Y) = KL( P(x,y) || P(x)P(y) )      <- deviation from MaxEnt null
+        correction:  P(x,y) ~ P(x)P(y) * exp(lambda * g)   (lambda=0 closes)
+
+  ARBITER ...... bootstrapped ABCD closure ratio (1.000 = closes)
+  RUN ON ....... background-only, CONTINUOUS (pre-quantization) scores
++==========================================================================+
+```
+
 ## Quick start
 
 ```bash
