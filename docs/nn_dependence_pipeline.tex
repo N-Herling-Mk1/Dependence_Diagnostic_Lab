@@ -1,0 +1,181 @@
+\documentclass[11pt]{article}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+
+\definecolor{accent}{RGB}{15,110,86}
+\definecolor{amber}{RGB}{186,117,23}
+\definecolor{coral}{RGB}{153,60,29}
+
+\titleformat{\section}{\color{accent}\large\bfseries}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\color{accent!85!black}\normalsize\bfseries}{\thesubsection}{0.6em}{}
+
+\newcommand{\dcor}{\mathrm{dCor}}
+\newcommand{\pdcor}{\mathrm{pdCor}}
+\newcommand{\I}{I}
+\newcommand{\KL}{D_{\mathrm{KL}}}
+\newcommand{\keybox}[1]{%
+  \begin{center}\fcolorbox{accent}{accent!6}{%
+  \begin{minipage}{0.93\linewidth}\vspace{4pt}#1\vspace{4pt}\end{minipage}}\end{center}}
+
+\title{\vspace{-2.2em}\color{accent}\bfseries
+A Two-Object Dependence Pipeline for the LLP ABCD Analysis}
+\author{\normalsize Nathan Herling \\[-2pt]
+\small UA ATLAS HEP Group \,$\cdot$\, Project HELIX \,$\cdot$\, Run~3 LLP MSVtx search}
+\date{\small\today}
+
+\begin{document}
+\maketitle
+\vspace{-1.2em}\hrule height 1.2pt \vspace{1em}
+
+\noindent
+Prof.\ Johns's question has two distinct objects hiding inside it. ``Are the
+features the nets consist of uncorrelated?'' is about \emph{inputs}; ``do the
+two discriminants behave independently for ABCD?'' is about \emph{outputs}.
+They are linked but not identical, and answering one does not answer the other.
+This note lays out a pipeline that measures both with distribution-free metrics,
+connects them through a single theorem, and assigns a concrete interpretation to
+each result pattern. A companion note argues why Pearson is the wrong metric and
+distance correlation (dCor) the right one; that argument is assumed here.
+
+\keybox{\centering \textbf{The spine:} inputs set a \emph{ceiling} on how
+dependent the outputs can be; the outputs are the \emph{realized} value;
+conditioning tells you whether output dependence was \emph{inherited} or
+\emph{manufactured}; the slice tells you \emph{where} it lives.}
+
+\section{The theorem that links the two objects}
+Both nets are deterministic maps of their inputs, $s_1=f(X_1)$, $s_2=g(X_2)$.
+The data-processing inequality gives a hard ceiling,
+\begin{equation}
+\I(s_1;s_2)\;\le\;\I(X_1;X_2).
+\end{equation}
+The networks cannot manufacture more mutual information between their outputs
+than already exists between their inputs. Two consequences:
+\begin{itemize}[nosep]
+\item independent input sets ($\I(X_1;X_2)=0$) \emph{force} independent outputs
+      --- this is exactly why ``ideally the features are uncorrelated'' is the
+      right instinct;
+\item the bound is loose: dependent inputs only \emph{permit} dependent outputs.
+      The nets may discard the shared information and sit far below the ceiling.
+\end{itemize}
+So input dependence is necessary-but-not-sufficient for output dependence, and
+the \emph{gap} between ceiling and realized value is the interesting physics.
+(The clean inequality is for mutual information; dCor does not obey an equally
+tight processing inequality, so MI carries the \emph{theorem} and dCor/HSIC
+carry the \emph{measurement} --- they agree on the iff-zero, which is what the
+independence question needs.)
+
+\section{Object A --- input feature correlation}
+\subsection{A1 : within-set redundancy}
+For each net's own inputs: the Pearson and dCor correlation matrices (linear vs.\
+nonlinear redundancy), the PCA eigenvalue spectrum summarised by the
+\emph{participation ratio} $\mathrm{PR}=(\sum_i\lambda_i)^2/\sum_i\lambda_i^2$
+(effective input dimensionality), and the Gaussian \emph{total correlation}
+$C(X)=-\tfrac12\log\det R$ as a single redundancy number. A low PR means fewer
+effective inputs than nominal --- the set is prunable and the net is more prone
+to converging on a shared representation.
+
+\subsection{A2 : cross-set overlap (the ceiling)}
+This is the object Johns named. It needs \emph{set-to-set} measures, not pairwise:
+\begin{itemize}[nosep]
+\item Jaccard overlap of the literal feature lists --- shared raw variables are
+      the most obvious dependence channel;
+\item canonical correlation analysis (CCA) --- the classical linear spectrum,
+      its leading value the max linear correlation between linear combinations
+      of the two sets;
+\item \textbf{vector dCor} $\dcor(X_1\text{-vec},X_2\text{-vec})\in[0,1]$ ---
+      dCor is defined between random \emph{vectors}, so a single number captures
+      the nonlinear set-to-set dependence; this is the headline A2 metric;
+\item normalized HSIC --- the kernel cousin of vector dCor, with its own
+      permutation test, run as an estimator cross-check.
+\end{itemize}
+
+\section{Object B --- output score correlation}
+The ladder from the companion note, now as a pipeline: Pearson (a floor only) and
+Spearman; dCor with a permutation test; mutual information $\I(s_1;s_2)$ (the
+realized value to compare against the A2 ceiling); sliced dCor across NN1 plus
+the conditional mean \emph{and variance} profiles $\mathbb{E}[s_2\mid s_1]$,
+$\mathrm{Var}(s_2\mid s_1)$ (locality and the heteroscedastic channel); and the
+bootstrapped ABCD closure ratio as the final physics arbiter.
+
+\section{The bridge --- inherited vs.\ manufactured}
+The piece that turns two measurements into an explanation is the
+\emph{partial distance correlation} (Sz\'ekely--Rizzo), $\pdcor(s_1,s_2;Z)$,
+which projects the shared features $Z$ out of the score--score dependence:
+\begin{equation}
+\pdcor(s_1,s_2;Z)\approx 0 \;\Rightarrow\; \text{dependence \textbf{inherited}
+(feature-level fix viable)},
+\end{equation}
+\begin{equation}
+\pdcor(s_1,s_2;Z)\ \text{survives} \;\Rightarrow\; \text{dependence
+\textbf{manufactured} (output-level fix or MaxEnt tilt)}.
+\end{equation}
+Its rigorous complement, requiring the trained models, is \emph{feature-level
+event mixing}: rebuild the two nets' inputs from different events to destroy the
+shared latent and re-measure output dCor; the drop quantifies the share of
+output dependence due to the common event. This is the same operation as the
+event-mixing background estimate, repurposed as a diagnostic.
+
+\section{Result interpretations, from theory alone}
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{@{}p{4.6cm}p{9.8cm}@{}}
+\toprule
+\textbf{Pattern} & \textbf{Reading} \\
+\midrule
+high input cross-dCor + high output dCor &
+inherited baseline; outputs near the ceiling. ABCD still suffers, but the fix is
+upstream (more orthogonal inputs). \\
+low input cross-dCor + high output dCor &
+multivariate shared latent the pairwise scan missed; feature decorrelation
+futile, go to output-level (DisCo) or model it (MaxEnt tilt). \\
+high input cross-dCor + low output dCor &
+the good case: nets learned to decorrelate. Verify closure, then relax. \\
+Pearson $\approx$ dCor (outputs) &
+dependence mostly linear $\Rightarrow$ near-Gaussian joint $\Rightarrow$ a single
+MaxEnt tilt likely captures the bias; barrel may be cheaply fixable. \\
+Pearson $\ll$ dCor (e.g.\ $0.3$ vs $0.6$) &
+strongly nonlinear; $0.3$ was a bad floor. Bias structured, likely tail-local;
+a single tilt may not suffice. \\
+sliced dCor flat vs.\ spiking in top corner &
+flat $\Rightarrow$ global correction works; spike at the signal corner
+$\Rightarrow$ local closure failure even at modest global dCor (prior for the
+barrel $1.79$). \\
+$\mathrm{Var}(s_2\mid s_1)$ varies, $\mathbb{E}[s_2\mid s_1]$ flat &
+pure variance dependence: $\rho\approx0$ yet ABCD breaks; mean-based corrections
+fail. Only dCor / conditional-variance scan catches it. \\
+low within-set PR &
+fewer effective inputs than nominal; predicts high output dependence and flags
+the feature set as prunable. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\keybox{This four-part story --- ceiling, realized value, inherited-vs-manufactured,
+and locality --- is a stronger answer than any single correlation number: it
+explains not just \emph{whether} the discriminants are dependent, but \emph{why}
+and \emph{where}.}
+
+\section{Software}
+The accompanying suite (\texttt{run\_diagnostics.py}) implements all of the
+above: \texttt{core\_metrics.py} (dCor, permutation, HSIC, MI, partial dCor,
+CCA), \texttt{feature\_module.py} (Object A), \texttt{output\_module.py}
+(Object B), \texttt{bridge\_module.py} (partial dCor + event-mixing hook). Run
+\texttt{python run\_diagnostics.py -{}-demo} for a synthetic shared-latent
+example, or point it at the ROOT$\to$CSV exports via \texttt{config.py}. All
+dependence metrics are evaluated on subsamples (dCor/HSIC are $O(n^2)$ in
+memory); run on background-only, continuous pre-quantization scores.
+
+\vspace{0.6em}\hrule height 0.5pt \vspace{0.4em}
+{\footnotesize\itshape The pipeline establishes which channel dominates ---
+input overlap, manufactured coupling, tail localisation, or variance dependence
+--- but the constancy of any MaxEnt tilt across the plane (control region to
+signal region) remains an empirical claim to validate, not prove. That
+extrapolation is where most of the residual risk lives.}
+
+\end{document}
